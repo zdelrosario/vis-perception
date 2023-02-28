@@ -46,7 +46,15 @@ df_data <-
   df_mpg %>% 
   group_by(class) %>% 
   summarize(displ = median(displ)) %>% 
-  mutate(class = fct_reorder(class, displ))
+  mutate(
+    class = fct_reorder(class, displ),
+    size = case_when(
+      str_detect(class, "compact") ~ "small",
+      class == "2seater" ~ "small",
+      class %in% c("midsize", "minivan") ~ "midsize",
+      class %in% c("suv", "pickup") ~ "utility"
+    )
+  )
 
 df_data  
 ```
@@ -111,9 +119,11 @@ ggsave("../images/fig0-demo.png")
 
 ## 1. Common scale
 
+Filter out the "small" vehicle classes in this (and the nonaligned scale) visual to ensure participants can't just write down the values for these three vehicle classes.
+
 ```{r}
 df_data %>% 
-  filter(class != "subcompact", class != "compact") %>% 
+  filter(size != "small") %>% 
   
   ggplot(aes(class, displ)) +
   geom_col() +
@@ -129,28 +139,22 @@ ggsave("../images/fig1-common.png")
 Pick some differences for tasks:
 
 ```{r}
-# d_pickup - d_suv # 0.05, Too small
-d_2seater - d_pickup  # 1.5, good
-d_2seater - d_minivan # 2.9, good
-d_2seater - d_midsize # 3.4, good
-
+d_pickup - d_minivan  # 1.4, good
 d_minivan - d_midsize # 0.5, good
+
+
+# d_pickup - d_suv # 0.05, Too small
 ```
 
 
 
 ## 2. Non-aligned scale
 
+Filter out the "small" vehicle classes in this (and the common scale) visual to ensure participants can't just write down the values for these three vehicle classes.
+
 ```{r}
 df_data %>% 
-  mutate(
-    size = case_when(
-      str_detect(class, "compact") ~ "small",
-      class == "2seater" ~ "small",
-      class %in% c("midsize", "minivan") ~ "midsize",
-      class %in% c("suv", "pickup") ~ "utility"
-    )
-  ) %>% 
+  filter(size != "small") %>% 
   
   ggplot(aes(class, displ)) +
   geom_col() +
@@ -165,11 +169,8 @@ ggsave("../images/fig2-nonaligned.png")
 ```
 
 ```{r}
-d_midsize - d_subcompact # 0.6
-d_pickup - d_minivan     # 1.4
-d_pickup - d_compact     # 2.5
-
-d_suv - d_compact        # 2.45, too many decimals
+d_pickup - d_midsize # 1.9
+d_suv - d_minivan # 1.35
 ```
 
 
@@ -179,7 +180,7 @@ d_suv - d_compact        # 2.45, too many decimals
 set.seed(102)
 
 df_data %>% 
-  filter(class != "subcompact", class != "compact") %>% 
+  # filter(class != "subcompact", class != "compact") %>% 
   mutate(base = rnorm(n = n(), sd = 0.5)) %>% 
   bind_rows(tibble(
     class = "(Reference)",
@@ -208,6 +209,8 @@ ggsave("../images/fig3-length.png")
 ```
 
 ```{r}
+d_pickup - d_subcompact # 2.5
+d_2seater - d_midsize # 3.4
 
 ```
 
@@ -242,6 +245,11 @@ df_data %>%
     y = "Engine Displacement (L)"
   )
 ggsave("../images/fig4-angle.png")
+```
+
+```{r}
+d_minivan - d_compact # 1.1
+d_suv - d_subcompact # 2.45
 ```
 
 
@@ -281,6 +289,11 @@ df_data %>%
 ggsave("../images/fig5-area.png")
 ```
 
+```{r}
+d_2seater - d_midsize # 3.4
+d_pickup - d_compact # 2.5
+```
+
 
 ## 6. Color saturation
 
@@ -318,4 +331,8 @@ df_data %>%
 ggsave("../images/fig6-colorsat.png")
 ```
 
+```{r}
+d_pickup - d_compact # 2.5
+d_minivan - d_subcompact # 1.1
+```
 
