@@ -8,20 +8,47 @@ output: html_notebook
 ```{r}
 library(tidyverse)
 
-filename_results <- "../data/Vis+Perception_February+28,+2023_10.31.csv"
+# Data directory
+dir_data <- "../data"
+# Find all the data files
+df_files_all <-
+  tibble(file = list.files(dir_data, full.names = TRUE)) %>%
+  mutate(name = str_sub(str_remove(file, "../data/"), 1, -5))
+
+df_files_all %>% head
 ```
 
 ## Wrangle data
 
-```{r}
-df_raw <- 
-  read_csv(filename_results) %>% 
+Load the most recent datafile only.
+
+```{r load_raw}
+df_data_raw <- 
+  df_files_all %>% 
+  ## Target data files only
+  filter(
+    str_detect(file, "csv"),
+    str_detect(file, "Vis\\+Perception"), # Valid datasets from Qualtrics Survey
+  ) %>% 
+  ## Parse date of download from filename
+  mutate(
+    name = str_remove(name, "Vis+Perception_"),
+    name = str_replace_all(name, "[[:punct:]|[:symbol:]]+", " "),
+    name = str_match(name, "\\w+ \\d+ \\d+"),
+    date = lubridate::mdy(name)
+  ) %>% 
+  ## Take the latest
+  filter(date == max(date)) %>% 
+  ## Load the data
+  pull(file) %>% 
+  read_csv() %>% 
   slice(-1) %>% 
   slice(-1)
 
-df_raw
+df_data_raw
 ```
 
+Process the raw data.
 
 ```{r}
 df_data <- 
@@ -64,10 +91,30 @@ df_data %>%
     error_mean = mean(abs(d)),
     relerror_mean = mean(abs(d_rel))
   ) %>% 
-  arrange(relerror_mean)
+  arrange(error_mean)
+  # arrange(relerror_mean)
 ```
 
-## Visualize all data
+## Visualize all data (Relative error)
+
+```{r}
+df_data %>% 
+  # mutate(task = fct_reorder(task, abs(d_rel))) %>% 
+  mutate(
+    task = fct_relevel(task, "COM", "NON", "LEN", "ANG", "AREA", "SAT")
+  ) %>% 
+  
+  ggplot(aes(task, d)) +
+  geom_hline(yintercept = 0, size = 1, color = "grey80") +
+  geom_boxplot() +
+  rzdr::theme_common() +
+  labs(
+    x = "Rung",
+    y = "Error (Signed)"
+  )
+```
+
+## Visualize all data (Relative error)
 
 ```{r}
 df_data %>% 
@@ -78,7 +125,7 @@ df_data %>%
   
   ggplot(aes(task, d_rel)) +
   geom_hline(yintercept = 0, size = 1, color = "grey80") +
-  geom_count() +
+  geom_boxplot() +
   rzdr::theme_common() +
   labs(
     x = "Rung",
