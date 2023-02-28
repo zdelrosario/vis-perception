@@ -1,0 +1,254 @@
+---
+title: "Activity: Visual Perception"
+output: html_notebook
+---
+
+Purpose:
+
+Create a set of figures that illustrate rungs on Cleveland and McGill's "visual hierarchy." These will be used in a survey that asks participants to judge numerical differences across groups.
+
+# Setup
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+df_mpg <- 
+  mpg %>% 
+  as_tibble()
+
+df_mpg
+```
+
+## Pick variables
+
+```{r}
+df_mpg %>% 
+  ggplot(aes(displ, color = class)) +
+  geom_freqpoly(bins = 10) +
+  geom_vline(
+    data = . %>% 
+      group_by(class) %>% 
+      summarize(displ = median(displ)),
+    mapping = aes(xintercept = displ, color = class)
+  )
+```
+
+Observations
+- The median `displ` has a good mix of differences. This will be our target for comparison across groups (by vehicle `class`).
+
+## Create working dataset
+
+```{r}
+df_data <- 
+  df_mpg %>% 
+  group_by(class) %>% 
+  summarize(displ = median(displ)) %>% 
+  mutate(class = fct_reorder(class, displ))
+
+df_data  
+```
+
+# Make Visuals
+
+## 0. Demo
+
+```{r}
+tibble(
+  category = c("A", "B"),
+  value = c(1.0, 2.5)
+) %>% 
+  ggplot(aes(category, value)) +
+  geom_col() +
+  rzdr::theme_common()
+ggsave("../images/fig0-demo.png")
+```
+
+
+## 1. Common scale
+
+```{r}
+df_data %>% 
+  filter(class != "subcompact", class != "compact") %>% 
+  
+  ggplot(aes(class, displ)) +
+  geom_col() +
+  coord_flip() +
+  rzdr::theme_common() +
+  labs(
+    x = "Class",
+    y = "Engine Displacement (L)"
+  )
+ggsave("../images/fig1-common.png")
+```
+
+
+## 2. Non-aligned scale
+
+```{r}
+df_data %>% 
+  mutate(
+    size = case_when(
+      str_detect(class, "compact") ~ "small",
+      class == "2seater" ~ "small",
+      class %in% c("midsize", "minivan") ~ "midsize",
+      class %in% c("suv", "pickup") ~ "utility"
+    )
+  ) %>% 
+  
+  ggplot(aes(class, displ)) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(~size, scales = "free") +
+  rzdr::theme_common() +
+  labs(
+    x = "Class",
+    y = "Engine Displacement (L)"
+  )
+ggsave("../images/fig2-nonaligned.png")
+```
+
+
+## 3. Length
+
+```{r}
+set.seed(101)
+
+df_data %>% 
+  filter(class != "subcompact", class != "compact") %>% 
+  mutate(base = rnorm(n = n(), sd = 0.5)) %>% 
+  bind_rows(tibble(
+    class = "(Reference)",
+    displ = 2,
+    base = 2
+  )) %>% 
+  
+  ggplot(aes(base, class, xend = base + displ, yend = class)) +
+  geom_segment(size = 2) +
+  annotate(
+    "label",
+    x = 4.5, y = "(Reference)",
+    size = 5,
+    label = "2 L",
+  ) +
+  
+  scale_x_continuous(
+    breaks = NULL,
+  ) +
+  rzdr::theme_common() +
+  labs(
+    x = "Engine Displacement (L)",
+    y = "Class"
+  )
+ggsave("../images/fig3-length.png")
+```
+
+
+## 4. Angle
+
+```{r}
+df_data %>% 
+  mutate(
+    size = case_when(
+      str_detect(class, "compact") ~ "small",
+      class == "2seater" ~ "small",
+      class %in% c("midsize", "minivan") ~ "midsize",
+      class %in% c("suv", "pickup") ~ "utility"
+    )
+  ) %>% 
+  
+  ggplot(aes(x = "", y = displ, fill = class)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  scale_y_continuous(
+    # breaks = c(0, 2.5, 5, 7.5, 10),
+    # labels = c("0", "2.5", "5", "7.5", "10")
+    breaks = c(0, 5, 10),
+    minor_breaks = NULL,
+  ) +
+  facet_wrap(~size) +
+  rzdr::theme_common() +
+  labs(
+    x = "Class",
+    y = "Engine Displacement (L)"
+  )
+ggsave("../images/fig4-angle.png")
+```
+
+
+## 5. Area
+
+```{r}
+df_data %>% 
+  ggplot(aes(x = "", y = "")) +
+  geom_point(aes(size = displ)) +
+  facet_wrap(~class) +
+  scale_size_area(max_size = 25) +
+  theme_void() +
+  theme(
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(margin = margin(4, 4, 4, 4), size = 16),
+    axis.title.y = element_text(margin = margin(4, 4, 4, 4), size = 16, angle = 90),
+
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 12),
+
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 12),
+
+    panel.grid.major = element_line(color = "grey90"),
+    panel.grid.minor = element_line(color = "grey90"),
+
+    aspect.ratio = 4 / 4,
+
+    plot.margin = unit(c(t = +0, b = +0, r = +0, l = +0), "cm"),
+    plot.title = element_text(size = 18, hjust = 0),
+    plot.title.position = "plot",
+    plot.subtitle = element_text(size = 16, hjust = 1),
+    plot.caption = element_text(size = 12, hjust = 1)
+  ) +
+  labs(x = "", y = "")
+ggsave("../images/fig5-area.png")
+```
+
+
+## 6. Color saturation
+
+```{r}
+df_data %>% 
+  ggplot(aes(x = "", y = "")) +
+  geom_point(aes(color = displ), size = 25) +
+  facet_wrap(~class) +
+  viridis::scale_color_viridis() +
+  theme_void() +
+  theme(
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(margin = margin(4, 4, 4, 4), size = 16),
+    axis.title.y = element_text(margin = margin(4, 4, 4, 4), size = 16, angle = 90),
+
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 12),
+
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 12),
+
+    panel.grid.major = element_line(color = "grey90"),
+    panel.grid.minor = element_line(color = "grey90"),
+
+    aspect.ratio = 4 / 4,
+
+    plot.margin = unit(c(t = +0, b = +0, r = +0, l = +0), "cm"),
+    plot.title = element_text(size = 18, hjust = 0),
+    plot.title.position = "plot",
+    plot.subtitle = element_text(size = 16, hjust = 1),
+    plot.caption = element_text(size = 12, hjust = 1)
+  ) +
+  labs(x = "", y = "")
+ggsave("../images/fig6-colorsat.png")
+```
+
+
