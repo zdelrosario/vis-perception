@@ -1,0 +1,88 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Setup
+
+```{r}
+library(tidyverse)
+
+filename_results <- "../data/Vis+Perception_February+28,+2023_10.31.csv"
+```
+
+## Wrangle data
+
+```{r}
+df_raw <- 
+  read_csv(filename_results) %>% 
+  slice(-1) %>% 
+  slice(-1)
+
+df_raw
+```
+
+
+```{r}
+df_data <- 
+  df_raw %>% 
+  select(
+    contains("COM") | 
+    contains("NON") | 
+    contains("LEN") |
+    contains("ANG") |
+    contains("AREA") |
+    contains("SAT"),
+    -UserLanguage
+  ) %>% 
+  rowid_to_column() %>% 
+  pivot_longer(
+    cols = -rowid,
+    names_sep = "-",
+    names_to = c("task", "true"),
+    values_to = "response"
+  ) %>% 
+  mutate(
+    x = as.numeric(response),
+    x_true = as.numeric(true),
+    d = x - x_true,
+    d_rel = d / x_true
+  )
+
+df_data
+```
+
+
+# Analyze
+
+## Mean error
+
+```{r}
+df_data %>% 
+  group_by(task) %>% 
+  summarize(
+    error_mean = mean(abs(d)),
+    relerror_mean = mean(abs(d_rel))
+  ) %>% 
+  arrange(relerror_mean)
+```
+
+## Visualize all data
+
+```{r}
+df_data %>% 
+  # mutate(task = fct_reorder(task, abs(d_rel))) %>% 
+  mutate(
+    task = fct_relevel(task, "COM", "NON", "LEN", "ANG", "AREA", "SAT")
+  ) %>% 
+  
+  ggplot(aes(task, d_rel)) +
+  geom_hline(yintercept = 0, size = 1, color = "grey80") +
+  geom_count() +
+  rzdr::theme_common() +
+  labs(
+    x = "Rung",
+    y = "Relative Error (Signed)"
+  )
+```
+
