@@ -51,6 +51,48 @@ df_data <-
 df_data  
 ```
 
+## Name values
+
+For convenience, extract all values into the namespace:
+
+```{r}
+d_2seater <- 
+  df_data %>% 
+  filter(class == "2seater") %>% 
+  pull(displ)
+
+d_compact <- 
+  df_data %>% 
+  filter(class == "compact") %>% 
+  pull(displ)
+
+d_midsize <- 
+  df_data %>% 
+  filter(class == "midsize") %>% 
+  pull(displ)
+
+d_minivan <- 
+  df_data %>% 
+  filter(class == "minivan") %>% 
+  pull(displ)
+
+d_pickup <- 
+  df_data %>% 
+  filter(class == "pickup") %>% 
+  pull(displ)
+
+d_subcompact <- 
+  df_data %>% 
+  filter(class == "subcompact") %>% 
+  pull(displ)
+
+d_suv <- 
+  df_data %>% 
+  filter(class == "suv") %>% 
+  pull(displ)
+```
+
+
 # Make Visuals
 
 ## 0. Demo
@@ -84,6 +126,18 @@ df_data %>%
 ggsave("../images/fig1-common.png")
 ```
 
+Pick some differences for tasks:
+
+```{r}
+# d_pickup - d_suv # 0.05, Too small
+d_2seater - d_pickup  # 1.5, good
+d_2seater - d_minivan # 2.9, good
+d_2seater - d_midsize # 3.4, good
+
+d_minivan - d_midsize # 0.5, good
+```
+
+
 
 ## 2. Non-aligned scale
 
@@ -101,13 +155,18 @@ df_data %>%
   ggplot(aes(class, displ)) +
   geom_col() +
   coord_flip() +
-  facet_wrap(~size, scales = "free") +
+  facet_wrap(~size, scales = "free_y") +
   rzdr::theme_common() +
   labs(
     x = "Class",
     y = "Engine Displacement (L)"
   )
 ggsave("../images/fig2-nonaligned.png")
+```
+
+```{r}
+d_midsize - d_subcompact
+
 ```
 
 
