@@ -165,15 +165,18 @@ ggsave("../images/fig2-nonaligned.png")
 ```
 
 ```{r}
-d_midsize - d_subcompact
+d_midsize - d_subcompact # 0.6
+d_pickup - d_minivan     # 1.4
+d_pickup - d_compact     # 2.5
 
+d_suv - d_compact        # 2.45, too many decimals
 ```
 
 
 ## 3. Length
 
 ```{r}
-set.seed(101)
+set.seed(102)
 
 df_data %>% 
   filter(class != "subcompact", class != "compact") %>% 
@@ -203,6 +206,11 @@ df_data %>%
   )
 ggsave("../images/fig3-length.png")
 ```
+
+```{r}
+
+```
+
 
 
 ## 4. Angle
