@@ -52,7 +52,7 @@ Process the raw data.
 
 ```{r}
 df_data <- 
-  df_raw %>% 
+  df_data_raw %>% 
   select(
     contains("COM") | 
     contains("NON") | 
