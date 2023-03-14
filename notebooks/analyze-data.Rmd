@@ -13,18 +13,7 @@ dir_data <- "../data"
 # Find all the data files
 df_files_all <-
   tibble(file = list.files(dir_data, full.names = TRUE)) %>%
-  mutate(name = str_sub(str_remove(file, "../data/"), 1, -5))
-
-df_files_all %>% head
-```
-
-## Wrangle data
-
-Load the most recent datafile only.
-
-```{r load_raw}
-df_data_raw <- 
-  df_files_all %>% 
+  mutate(name = str_sub(str_remove(file, "../data/"), 1, -5)) %>% 
   ## Target data files only
   filter(
     str_detect(file, "csv"),
@@ -37,13 +26,26 @@ df_data_raw <-
     name = str_match(name, "\\w+ \\d+ \\d+"),
     date = lubridate::mdy(name)
   ) %>% 
+  arrange(desc(date))
+
+df_files_all %>% head
+```
+
+## Wrangle data
+
+Load the most recent datafile only.
+
+```{r load_raw}
+df_data_raw <- 
+  df_files_all %>% 
   ## Take the latest
   filter(date == max(date)) %>% 
   ## Load the data
   pull(file) %>% 
   read_csv() %>% 
   slice(-1) %>% 
-  slice(-1)
+  slice(-1) %>% 
+  mutate(Progress = as.numeric(Progress))
 
 df_data_raw
 ```
@@ -53,6 +55,7 @@ Process the raw data.
 ```{r}
 df_data <- 
   df_data_raw %>% 
+  filter(Progress == 100) %>% 
   select(
     contains("COM") | 
     contains("NON") | 
@@ -92,14 +95,25 @@ df_data %>%
     relerror_mean = mean(abs(d_rel))
   ) %>% 
   arrange(error_mean)
-  # arrange(relerror_mean)
 ```
+
+
+
+```{r}
+df_data %>% 
+  group_by(task) %>% 
+  summarize(
+    error_mean = mean(abs(d)),
+    relerror_mean = mean(abs(d_rel))
+  ) %>% 
+  arrange(relerror_mean)
+```
+
 
 ## Visualize all data (Relative error)
 
 ```{r}
 df_data %>% 
-  # mutate(task = fct_reorder(task, abs(d_rel))) %>% 
   mutate(
     task = fct_relevel(task, "COM", "NON", "LEN", "ANG", "AREA", "SAT")
   ) %>% 
@@ -118,7 +132,6 @@ df_data %>%
 
 ```{r}
 df_data %>% 
-  # mutate(task = fct_reorder(task, abs(d_rel))) %>% 
   mutate(
     task = fct_relevel(task, "COM", "NON", "LEN", "ANG", "AREA", "SAT")
   ) %>% 
